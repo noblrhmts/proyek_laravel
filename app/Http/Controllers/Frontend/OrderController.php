@@ -8,13 +8,18 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use Illuminate\Support\Facades\Session; 
 use App\Models\Coupon;
+use App\Models\Admin;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Carbon\Carbon;
+use App\Notifications\OrderComplete;
+use Illuminate\Support\Facades\Notification; 
 
 class OrderController extends Controller
-{
+{ 
     public function CashOrder(Request $request){
+
+        $user = Admin::where('role','admin')->get();
 
         $validateData = $request->validate([
             'name' => 'required',
@@ -78,6 +83,9 @@ class OrderController extends Controller
             Session::forget('cart');
          }
 
+        // Send Notification to admin
+         Notification::send($user, new OrderComplete($request->name));
+
          $notification = array(
             'message' => 'Order Placed Successfully',
             'alert-type' => 'success'
@@ -88,26 +96,33 @@ class OrderController extends Controller
     }
     //End Method 
 
+
     public function StripeOrder(Request $request){
+
         $validateData = $request->validate([
             'name' => 'required',
             'email' => 'required',
             'phone' => 'required',
             'address' => 'required',
         ]);
+
         $cart = session()->get('cart',[]);
         $totalAmount = 0;
+
         foreach($cart as $car){
             $totalAmount += ($car['price'] * $car['quantity']);
         }
+
         if (Session()->has('coupon')) {
             $tt = (Session()->get('coupon')['discount_amount']);
         } else {
             $tt = $totalAmount;
         }
-        \Stripe\Stripe::setApiKey('sk_test_51Oml5cGAwoXiNtjJZbPFBKav0pyrR8GSwzUaLHLhInsyeCa4HI8kKf2IcNeUXc8jc8XVzBJyqjKnDLX9MlRjohrL003UDGPZgQ');
+
+        \Stripe\Stripe::setApiKey('sk_test_51QWdQuBObWoqQ5dDJlwNbrrT1QrxFeceYAALOqhSEAuGkUfa58zrTsrwUMP2xqwZvu4M0stgnsftHix9y4yltU7C00AZuM7FOK');
         
         $token = $_POST['stripeToken'];
+
         $charge = \Stripe\Charge::create([
             'amount' => $totalAmount*100,
             'currency' => 'usd',
@@ -124,6 +139,7 @@ class OrderController extends Controller
             'address' => $request->address,
             'payment_type' => $charge->payment_method,
             'payment_method' => 'Stripe',
+
             'currency' => $charge->currency,
             'transaction_id' => $charge->balance_transaction,
             'amount' => $totalAmount,
@@ -134,9 +150,12 @@ class OrderController extends Controller
             'order_date' => Carbon::now()->format('d F Y'),
             'order_month' => Carbon::now()->format('F'),
             'order_year' => Carbon::now()->format('Y'),
+
             'status' => 'Pending',
             'created_at' => Carbon::now(), 
+
         ]);
+
         $carts = session()->get('cart',[]);
         foreach ($carts as $cart) {
             OrderItem::insert([
@@ -148,21 +167,35 @@ class OrderController extends Controller
                 'created_at' => Carbon::now(), 
             ]);
         } // End Foreach
+
         if (Session::has('coupon')) {
            Session::forget('coupon');
         }
+
         if (Session::has('cart')) {
             Session::forget('cart');
          }
+
          $notification = array(
             'message' => 'Order Placed Successfully',
             'alert-type' => 'success'
         );
+
         return view('frontend.checkout.thanks')->with($notification);
  
     }
     //End Method 
 
+    public function MarkAsRead(Request $request, $notificationId){
+        $user = Auth::guard('admin')->user();
+        $notification = $user->notifications()->where('id',$notificationId)->first();
+
+        if ($notification) {
+            $notification->markAsRead();
+        }
+        return response()->json(['count' => $user->unreadNotifications()->count()]);
+    }
+ //End Method 
 
 
 }

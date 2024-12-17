@@ -22,7 +22,6 @@ use App\Http\Controllers\Admin\RoleController;
 //     return view('welcome');
 // });
 
-
 Route::get('/', [UserController::class, 'Index'])->name('index');
 
 
@@ -36,19 +35,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/logout', [UserController::class, 'UserLogout'])->name('user.logout');
     Route::get('/change/password', [UserController::class, 'ChangePassword'])->name('change.password');
     Route::post('/user/password/update', [UserController::class, 'UserPasswordUpdate'])->name('user.password.update');
+    
+    // Get Wishlist data for user 
+    Route::get('/all/wishlist', [HomeController::class, 'AllWishlist'])->name('all.wishlist');
+    Route::get('/remove/wishlist/{id}', [HomeController::class, 'RemoveWishlist'])->name('remove.wishlist');
 
+    Route::controller(ManageOrderController::class)->group(function(){
+        Route::get('/user/order/list', 'UserOrderList')->name('user.order.list'); 
+        Route::get('/user/order/details/{id}', 'UserOrderDetails')->name('user.order.details');
+        Route::get('/user/invoice/download/{id}', 'UserInvoiceDownload')->name('user.invoice.download'); 
+        
+    });
    
-});
-
-
-// Get Wishlist data for user 
-Route::get('/all/wishlist', [HomeController::class, 'AllWishlist'])->name('all.wishlist');
-Route::get('/remove/wishlist/{id}', [HomeController::class, 'RemoveWishlist'])->name('remove.wishlist');
-
-Route::controller(ManageOrderController::class)->group(function(){
-    Route::get('/user/order/list', 'UserOrderList')->name('user.order.list'); 
-    Route::get('/user/order/details/{id}', 'UserOrderDetails')->name('user.order.details'); 
-    Route::get('/user/invoice/download/{id}', 'UserInvoiceDownload')->name('user.invoice.download');
 });
 
 
@@ -134,14 +132,21 @@ Route::middleware('admin')->group(function () {
         Route::post('/banner/update', 'BannerUpdate')->name('banner.update'); 
         Route::get('/delete/banner/{id}', 'DeleteBanner')->name('delete.banner'); 
     });
- 
+
     Route::controller(ManageOrderController::class)->group(function(){
         Route::get('/pending/order', 'PendingOrder')->name('pending.order'); 
         Route::get('/confirm/order', 'ConfirmOrder')->name('confirm.order'); 
         Route::get('/processing/order', 'ProcessingOrder')->name('processing.order'); 
         Route::get('/deliverd/order', 'DeliverdOrder')->name('deliverd.order'); 
 
-        Route::get('/admin/order/details/{id}', 'AdminOrderDetails')->name('admin.order.details');
+        Route::get('/admin/order/details/{id}', 'AdminOrderDetails')->name('admin.order.details');  
+    });
+
+    Route::controller(ManageOrderController::class)->group(function(){
+        Route::get('/pening_to_confirm/{id}', 'PendingToConfirm')->name('pening_to_confirm');
+        Route::get('/confirm_to_processing/{id}', 'ConfirmToProcessing')->name('confirm_to_processing'); 
+        Route::get('/processing_to_deliverd/{id}', 'ProcessingToDiliverd')->name('processing_to_deliverd'); 
+        
     });
 
     Route::controller(ReportController::class)->group(function(){
@@ -151,17 +156,12 @@ Route::middleware('admin')->group(function () {
         Route::post('/admin/search/byyear', 'AminSearchByYear')->name('admin.search.byyear');
     });
 
-    Route::controller(ManageOrderController::class)->group(function(){
-        Route::get('/pening_to_confirm/{id}', 'PendingToConfirm')->name('pening_to_confirm');
-        Route::get('/confirm_to_processing/{id}', 'ConfirmToProcessing')->name('confirm_to_processing'); 
-        Route::get('/processing_to_deliverd/{id}', 'ProcessingToDiliverd')->name('processing_to_deliverd'); 
-
-    });
-
     Route::controller(ReviewController::class)->group(function(){
         Route::get('/admin/pending/review', 'AdminPendingReview')->name('admin.pending.review');
         Route::get('/admin/approve/review', 'AdminApproveReview')->name('admin.approve.review'); 
         Route::get('/reviewchangeStatus', 'ReviewChangeStatus'); 
+        
+    });
 
     Route::controller(RoleController::class)->group(function(){
         Route::get('/all/permission', 'AllPermission')->name('all.permission');
@@ -170,13 +170,14 @@ Route::middleware('admin')->group(function () {
         Route::get('/edit/permission/{id}', 'EditPermission')->name('edit.permission');
         Route::post('/update/permission', 'UpdatePermission')->name('permission.update');
         Route::get('/delete/permission/{id}', 'DeletePermission')->name('delete.permission');
-        
+
         Route::get('/import/permission', 'ImportPermission')->name('import.permission');
         Route::get('/export', 'Export')->name('export');
         Route::post('/import', 'Import')->name('import');
-        });
-    
+        
+        
     });
+
 
     Route::controller(RoleController::class)->group(function(){
         Route::get('/all/roles', 'AllRoles')->name('all.roles');
@@ -184,7 +185,7 @@ Route::middleware('admin')->group(function () {
         Route::post('/store/roles', 'StoreRoles')->name('roles.store');
         Route::get('/edit/roles/{id}', 'EditRoles')->name('edit.roles');
         Route::post('/update/roles', 'UpdateRoles')->name('roles.update');
-        Route::get('/delete/roles/{id}', 'DeleteRoles')->name('delete.roles');
+        Route::get('/delete/roles/{id}', 'DeleteRoles')->name('delete.roles'); 
         
     });
 
@@ -197,7 +198,7 @@ Route::middleware('admin')->group(function () {
 
         Route::post('/admin/roles/update/{id}', 'AdminRolesUpdate')->name('admin.roles.update');
         Route::get('/admin/delect/roles/{id}', 'AdminDelectRoles')->name('admin.delect.roles');
-
+       
     });
 
     Route::controller(RoleController::class)->group(function(){
@@ -208,6 +209,7 @@ Route::middleware('admin')->group(function () {
         Route::post('/admin/update/{id}', 'AdminUpdate')->name('admin.update');
         Route::get('/delete/admin/{id}', 'DeleteAdmin')->name('delete.admin');
     });
+ 
     
 }); // End Admin Middleware
 
@@ -251,12 +253,11 @@ Route::middleware(['client','status'])->group(function () {
         Route::get('/delete/coupon/{id}', 'DeleteCoupon')->name('delete.coupon');
         
     });
-
+    
     Route::controller(ManageOrderController::class)->group(function(){
-        Route::get('/all/client/orders', 'AllClientOrders')->name('all.client.orders');
-        Route::get('/client/order/details/{id}', 'ClientOrderDetails')->name('client.order.details');  
+        Route::get('/all/client/orders', 'AllClientOrders')->name('all.client.orders'); 
+        Route::get('/client/order/details/{id}', 'ClientOrderDetails')->name('client.order.details'); 
     });
-
 
     Route::controller(ReportController::class)->group(function(){
         Route::get('/client/all/reports', 'ClientAllReports')->name('client.all.reports'); 
@@ -264,11 +265,12 @@ Route::middleware(['client','status'])->group(function () {
         Route::post('/client/search/bymonth', 'ClientSearchByMonth')->name('client.search.bymonth');
         Route::post('/client/search/byyear', 'ClientSearchByYear')->name('client.search.byyear');
     });
-    
+
     Route::controller(ReviewController::class)->group(function(){
         Route::get('/client/all/reviews', 'ClientAllReviews')->name('client.all.reviews'); 
         
     });
+
     
 });
  // End Client Middleware
@@ -279,12 +281,13 @@ Route::middleware(['client','status'])->group(function () {
  Route::controller(HomeController::class)->group(function(){
     Route::get('/restaurant/details/{id}', 'RestaurantDetails')->name('res.details'); 
     Route::post('/add-wish-list/{id}', 'AddWishList'); 
+    
 });
 
 Route::controller(CartController::class)->group(function(){
     Route::get('/add_to_cart/{id}', 'AddToCart')->name('add_to_cart');
     Route::post('/cart/update-quantity', 'updateCartQuanity')->name('cart.updateQuantity');
-    Route::post('/cart/remove', 'CartRemove')->name('cart.remove'); 
+    Route::post('/cart/remove', 'CartRemove')->name('cart.remove');  
     Route::post('/apply-coupon', 'ApplyCoupon');
     Route::get('/remove-coupon', 'CouponRemove');
     Route::get('/checkout', 'ShopCheckout')->name('checkout');
@@ -293,6 +296,8 @@ Route::controller(CartController::class)->group(function(){
 Route::controller(OrderController::class)->group(function(){
     Route::post('/cash_order', 'CashOrder')->name('cash_order');
     Route::post('/stripe_order', 'StripeOrder')->name('stripe_order');
+    Route::post('/mark-notification-as-read/{notification}', 'MarkAsRead');
+   
 });
 
 Route::controller(ReviewController::class)->group(function(){
@@ -303,4 +308,6 @@ Route::controller(ReviewController::class)->group(function(){
 Route::controller(FilterController::class)->group(function(){
     Route::get('/list/restaurant', 'ListRestaurant')->name('list.restaurant');  
     Route::get('/filter/products', 'FilterProducts')->name('filter.products');
+    
 });
+
